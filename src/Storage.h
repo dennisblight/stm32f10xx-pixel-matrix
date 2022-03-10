@@ -56,15 +56,13 @@ void Storage::initialize() {
 
 void Storage::normalizeSampleMode() {
   CONFIG_SAMPLE_MODE &= 0x0F;
-  if(CONFIG_SAMPLE_MODE_NONE) {
-    CONFIG_SAMPLE_MODE = 0x00;
-  }
-  else if(CONFIG_SAMPLE_MODE_TIMESTAMP) {
+  if(CONFIG_SAMPLE_MODE_TIMESTAMP) {
     CONFIG_SAMPLE_MODE &= 0x03;
   }
-  else if(!CONFIG_SAMPLE_MODE_HAS_CHANNEL) {
+  else if(CONFIG_SAMPLE_MODE_NONE || !CONFIG_SAMPLE_MODE_HAS_CHANNEL) {
     CONFIG_SAMPLE_MODE = 0x00;
   }
+  
   if(CONFIG_SAMPLE_SIZE > (GLOBAL_BUFFER_SIZE / 4)) {
     uint16_t maximumSampling = (GLOBAL_BUFFER_SIZE / 4);
     CONFIG[CONFIG_IDX_SAMPLE_SIZE + 0] = maximumSampling & 0xFF;

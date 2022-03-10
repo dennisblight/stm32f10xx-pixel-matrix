@@ -43,11 +43,10 @@ void Renderer::drawPixel(int32_t x, int32_t y) {
   int32_t bitOffset = 2 * (offset % 4);
 
   if (useLower) {
-    GLOBAL_BUFFER[byteOffset] |= (1 << (bitOffset + 1)) & 0xFF;
+    bitOffset++;
   }
-  else {
-    GLOBAL_BUFFER[byteOffset] |= (1 << bitOffset) & 0xFF;
-  }
+
+  GLOBAL_BUFFER[byteOffset] |= (1 << bitOffset) & 0xFF;
 }
 
 #endif
