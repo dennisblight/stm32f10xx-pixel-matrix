@@ -19,6 +19,7 @@ class ACInput {
     uint32_t sampleSize = 0;
     void applyThreshold(uint32_t adc1, uint32_t adc2);
     void readInput();
+    bool started = false;
   public:
     bool triggerLock = false;
     bool logDataSampling = false;
@@ -59,9 +60,8 @@ void ACInput::applyThreshold(uint32_t adc1, uint32_t adc2) {
 }
 
 void ACInput::beginReadInput() {
-  if(millis() <= 1000) return;
-  while(micros() - lastMicros < 7111) ;
-  lastMicros = micros();
+  if(!started && millis() <= 1000) return;
+  started = true;
 
   int32_t trigger = digitalRead(IN_Trigger);
   if(trigger == 0) {
@@ -84,7 +84,7 @@ void ACInput::beginReadInput() {
 
   if(triggerLock) {
     uint32_t deltaMillis = millis() - triggerStart;
-    if(1000 < deltaMillis) {
+    if(1000 < deltaMillis && (triggerDuration == 0 || deltaMillis <= triggerDuration)) {
       readInput();
     }
 
@@ -97,11 +97,6 @@ void ACInput::beginReadInput() {
       }
       else storage->saveIndex();
     }
-    // if(index != lastIndex && CONFIG_SAMPLE_MODE_NONE) {
-    //   lastIndex = index;
-    //   storage->loadBuffer(index);
-    //   storage->saveIndex(index);
-    // }
   }
 }
 

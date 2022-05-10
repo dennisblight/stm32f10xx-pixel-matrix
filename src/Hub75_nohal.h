@@ -71,6 +71,8 @@ void Hub75::latch() {
   digitalWrite(HUB75_PIN_LAT, HIGH);
   digitalWrite(HUB75_PIN_LAT, LOW);
 
+  // selectLine(1);
+
   // output enable
   digitalWrite(HUB75_PIN_OE, HIGH);
   digitalWrite(HUB75_PIN_OE, LOW);

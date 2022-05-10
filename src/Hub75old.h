@@ -31,9 +31,11 @@ class Hub75 {
   public:
     bool samplingMode = false;
     void initialize();
-    void selectLine(uint16_t &line);
-    void send2Pixels(bool r0, bool g0, bool b0, bool r1, bool g1, bool b1, int32_t &col);
-    void send2Pixels(uint16_t colors, int32_t &col);
+    void selectLine(uint16_t line);
+    void latch();
+    void clock();
+    void send2Pixels(bool r0, bool g0, bool b0, bool r1, bool g1, bool b1);
+    void send2Pixels(uint16_t colors);
     void renderBuffer();
 };
 
@@ -63,58 +65,56 @@ void Hub75::initialize() {
   dimension = width * height;
 }
 
-void Hub75::selectLine(uint16_t &line) {
+void Hub75::selectLine(uint16_t line) {
+  line = ((line - 1) & 0x1F) << 8;
+  HAL_GPIO_WritePin(GPIOA,  line & 0x1F00, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOA, ~line & 0x1F00, GPIO_PIN_RESET);
+}
 
-  HAL_GPIO_WritePin(GPIOB, HUB75_PIN_OE, GPIO_PIN_SET);
-  int rowPin = (line & 0x1F) << 8;
-  // Addressing
-  HAL_GPIO_WritePin(GPIOA,  rowPin & 0x1F00, GPIO_PIN_SET);
-  HAL_GPIO_WritePin(GPIOA, ~rowPin & 0x1F00, GPIO_PIN_RESET);
-
-  // Latching
+void Hub75::latch() {
+  // latch
   HAL_GPIO_WritePin(GPIOA, HUB75_PIN_LAT, GPIO_PIN_SET);
-  line++;
   HAL_GPIO_WritePin(GPIOA, HUB75_PIN_LAT, GPIO_PIN_RESET);
 
-  // Output Enable
+  // output enable
+  HAL_GPIO_WritePin(GPIOB, HUB75_PIN_OE, GPIO_PIN_SET);
   HAL_GPIO_WritePin(GPIOB, HUB75_PIN_OE, GPIO_PIN_RESET);
 }
 
-void Hub75::send2Pixels(bool r0, bool g0, bool b0, bool r1, bool g1, bool b1, int32_t &col) {
+void Hub75::clock() {
+  HAL_GPIO_WritePin(GPIOB, HUB75_PIN_CLK, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOB, HUB75_PIN_CLK, GPIO_PIN_RESET);
+}
+
+void Hub75::send2Pixels(bool r0, bool g0, bool b0, bool r1, bool g1, bool b1) {
   send2Pixels(
     (r0 ? 0x01 : 0) |
     (g0 ? 0x02 : 0) |
     (b0 ? 0x04 : 0) |
     (r1 ? 0x08 : 0) |
     (g1 ? 0x10 : 0) |
-    (b1 ? 0x20 : 0) ,
-    col
+    (b1 ? 0x20 : 0)
   );
 }
 
-void Hub75::send2Pixels(uint16_t colors, int32_t &col) {
+void Hub75::send2Pixels(uint16_t colors) {
   colors = colors << 3;
-
-  // Colors
   HAL_GPIO_WritePin(GPIOB,  colors & 0x01F8, GPIO_PIN_SET);
   HAL_GPIO_WritePin(GPIOB, ~colors & 0x01F8, GPIO_PIN_RESET);
-
-  // Clock
-  HAL_GPIO_WritePin(GPIOB, HUB75_PIN_CLK, GPIO_PIN_SET);
-  col++;
-  HAL_GPIO_WritePin(GPIOB, HUB75_PIN_CLK, GPIO_PIN_RESET);
+  clock();
 }
 
 void Hub75::renderBuffer() {
   uint32_t bitOffset = 0;
-  for (uint16_t row = 0; row < (height / 2);) {
-    for (int32_t col = 0; col < width;) {
+  for (uint16_t row = 0; row < (height / 2); row++) {
+    selectLine(row);
+    for (int32_t col = 0; col < width; col++) {
       if (bitOffset >= dimension) bitOffset = 0;
       bool bit0 = (GLOBAL_BUFFER[bitOffset / 8] >> (bitOffset++ % 8)) & 0x01;
       bool bit1 = (GLOBAL_BUFFER[bitOffset / 8] >> (bitOffset++ % 8)) & 0x01;
-      send2Pixels(bit0, 0, 0, bit1, 0, 0, col);
+      send2Pixels(bit0, 0, 0, bit1, 0, 0);
     }
-    selectLine(row);
+    latch();
   }
 }
 

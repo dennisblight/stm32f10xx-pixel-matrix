@@ -1,6 +1,8 @@
 #include <Arduino.h>
 #ifdef NO_HAL_GPIO
 #include "Hub75_nohal.h"
+#elif defined(USING_LL)
+#include "Hub75_ll.h"
 #else
 #include "Hub75.h"
 #endif
